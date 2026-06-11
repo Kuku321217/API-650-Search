@@ -302,10 +302,6 @@
     </div>
     <div class="top-actions">
       <button class="btn" id="resetBtn">Reset</button>
-      <button class="btn" id="loadBtn">Load Saved</button>
-      <button class="btn" id="saveBtn">Save Inputs</button>
-      <button class="btn" id="wordBtn">Export Word</button>
-      <button class="btn" id="pdfBtn">Export PDF</button>
       <button class="btn primary" id="printBtn">Print / PDF</button>
     </div>
   </header>
@@ -2367,53 +2363,15 @@ function reportDocument(){
     </body></html>`;
 }
 
-function exportWord(){
-  try{
-    const html=reportDocument();
-    const blob=new Blob(['\ufeff'+html], {type:"application/msword"});
-    const fn=`Storage_Tank_Design_API650_${(S.jobNo||"report").replace(/[^\w-]/g,"")}.doc`;
-    const a=document.createElement("a");
-    a.href=URL.createObjectURL(blob); a.download=fn;
-    document.body.appendChild(a); a.click();
-    setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
-    flashBtn($("wordBtn"),"Word saved");
-  }catch(e){ alert("Could not export Word: "+e.message); }
-}
+function exportWord(){ /* local save/export disabled */ }
 
-function exportPDF(){
-  try{
-    const html=reportDocument();
-    const w=window.open("","_blank");
-    if(!w){ alert("Pop-up blocked. Allow pop-ups for this page to export PDF, or use the Word export."); return; }
-    w.document.open(); w.document.write(html); w.document.close();
-    // give the new window a moment to render fonts/layout, then invoke print
-    const go=()=>{ try{ w.focus(); w.print(); }catch(_){ } };
-    if(w.document.readyState==="complete") setTimeout(go,400); else w.onload=()=>setTimeout(go,400);
-    flashBtn($("pdfBtn"),"PDF saved");
-  }catch(e){ alert("Could not export PDF: "+e.message); }
-}
+function exportPDF(){ /* local save/export disabled */ }
 
 /* ===================== SAVE / LOAD ===================== */
 const STORE_KEY="api650_tank_inputs";
 function flashBtn(btn,msg){ const o=btn.textContent; btn.textContent=msg; setTimeout(()=>btn.textContent=o,1400); }
-function saveInputs(){
-  try{
-    localStorage.setItem(STORE_KEY, JSON.stringify(S));
-    flashBtn($("saveBtn"),"Saved");
-  }catch(e){ alert("Could not save inputs: "+e.message); }
-}
-function loadInputs(silent){
-  try{
-    const raw=localStorage.getItem(STORE_KEY);
-    if(!raw){ if(!silent) alert("No saved inputs found."); return false; }
-    const data=JSON.parse(raw);
-    // merge into a fresh default to stay safe against missing keys
-    S=Object.assign(JSON.parse(JSON.stringify(DEFAULTS)), data);
-    init();
-    if(!silent) flashBtn($("loadBtn"),"Loaded");
-    return true;
-  }catch(e){ if(!silent) alert("Could not load inputs: "+e.message); return false; }
-}
+function saveInputs(){ /* local save disabled */ }
+function loadInputs(silent){ /* local load disabled */ return false; }
 
 /* ===================== INIT ===================== */
 /* ===================== TAB SWITCHING ===================== */
@@ -2430,13 +2388,7 @@ function bindTabs(){
 function init(){ buildInputs(); buildShellTable(); compute(); bindTabs(); }
 $("resetBtn").onclick=()=>{ S=JSON.parse(JSON.stringify(DEFAULTS)); init(); };
 $("printBtn").onclick=()=>window.print();
-$("saveBtn").onclick=saveInputs;
-$("loadBtn").onclick=()=>loadInputs(false);
-$("wordBtn").onclick=exportWord;
-$("pdfBtn").onclick=exportPDF;
 init();
-// auto-restore last saved inputs on open (if any)
-loadInputs(true);
 
 /* ===================== PERMANENT ATTRIBUTION (tamper-resistant) =====================
    The "Developed by: AY" credit is locked at runtime. If the node is removed,
@@ -2474,6 +2426,22 @@ loadInputs(true);
   setInterval(()=>{ try{ ensure(); startObserve(); }catch(_){ } }, 1000);
   // 3) Re-assert before printing/exports so it appears on output too.
   window.addEventListener("beforeprint", ensure);
+})();
+
+/* ===================== DISABLE LOCAL SAVE ===================== */
+/* Block the Ctrl+S / Cmd+S "save page" shortcut. NOTE: this only suppresses
+   the in-page keyboard shortcut. A browser's own File menu, right-click
+   "Save as", and "View source" operate outside any page's control and cannot
+   be prevented by JavaScript. */
+(function disableLocalSave(){
+  window.addEventListener("keydown", function(e){
+    const key = (e.key || "").toLowerCase();
+    if((e.ctrlKey || e.metaKey) && key === "s"){
+      e.preventDefault();
+      e.stopPropagation();
+      return false;
+    }
+  }, true);
 })();
 </script>
 </body>
